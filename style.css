@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@700&display=swap');
+
 :root {
     --button-gap: 2.75%;
 }
@@ -29,6 +31,7 @@ body {
     justify-content: right;
     align-items: center;
     font-size: max(6vh, 24px);
+    font-family: "Azaret Mono", monospace;
 }
 
 button {
@@ -36,6 +39,7 @@ button {
     border-width: 3px;
     font-size: max(4vh, 16px);
     font-weight: bold;
+    font-family: "Azaret Mono", monospace;
 }
 
 #buttons {
