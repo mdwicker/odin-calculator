@@ -31,8 +31,3 @@ function operate(operator, a, b) {
 let operator;
 let numA;
 let numB;
-
-console.log(operate("plus", 1, 2));
-console.log(operate("minus", 1, 2));
-console.log(operate("times", 1, 2));
-console.log(operate("divide", 1, 2));
