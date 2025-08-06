@@ -35,6 +35,7 @@ function handleEntry(entry) {
 
     if (entry === "clear") {
         displayContent = "";
+        clearOperation();
     } else if (entry === "backspace") {
         displayContent = displayContent.slice(0, -1);
     } else if (entry === "decimal") {
@@ -48,7 +49,6 @@ function handleEntry(entry) {
     refreshDisplay();
 }
 
-
 function isValidEntry(entry) {
     const validEntryRegex = /[\d\.]/
     if (entry === "." && displayContent.includes(".")){
@@ -57,19 +57,52 @@ function isValidEntry(entry) {
     if (!validEntryRegex.test(entry)) {
         return false;
     }
+    if (displayContent.length > 13) { // display can't handle long numbers
+        return false;
+    }
     return true;
 }
 
-function handleOperation(operator) {
+function handleOperation(operatorInput) {
+    // [numA = N, numB = N] -> type -> OPERATOR -> [numA = Y, numB = N] -> type -> EQUAL -> [numA = Y, numB = Y] -> DISPLAY
+    
+    // [numA = N, numB = N] expected sequence: type a number
+    // [numA = Y, numB = N]then hit an operator to store that number as numA,
+    // [numA = Y, numB = Y]then type another number, then hit equal to store as numB
+    // [numA = Y, numB = Y] DISPLAY RESULT
+    // operator with nothing typed = nothing happens
+    // equal with no numA stored == nothing happens? 
+    // or just return the value entered as the result.
+    // after equal, a new thing typed will clear, and an operator will chain
+    if (operatorInput === "equals") {
+        numB = Number(displayContent);
+        displayContent = operate(operator, numA, numB).toString();
+        refreshDisplay();
+    } else {
+        numA = Number(displayContent);
+        displayContent = "";
+        operator = operatorInput;
+    }
+}
 
+function clearOperation() {
+    numA = undefined;
+    numB = undefined;
+    operator = undefined;
 }
 
 function refreshDisplay() {
-    if (!displayContent) {
-        displayContent = "00.00"
+    if (!displayContent || displayContent === "ERROR") {
+        displayContent = "00.00";
     }
-    document.querySelector("#display").textContent = displayContent;
+    if (displayContent.length > 13) { // display can't handle long numbers
+        document.querySelector("#display").textContent = "ERROR";
+        displayContent = "";
+    } else {
+        document.querySelector("#display").textContent = displayContent;
+    }
 }
+
 
 let displayContent;
 let operator;
