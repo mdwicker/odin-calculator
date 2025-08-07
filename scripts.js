@@ -1,5 +1,3 @@
-const DEFAULT_INPUT = "0";
-
 function add(a, b) {
     return a + b;
 }
@@ -14,7 +12,7 @@ function multiply(a, b) {
 
 function divide(a, b) {
     if (b === 0) {
-        return "/0? NICE TRY!";
+        throw new Error("DIV BY 0");
     }
     return a / b;
 }
@@ -61,10 +59,6 @@ function handleEntryBtn(btn) {
 }
 
 function isValidEntry(entry) {
-    if (entry === undefined) {
-        return false;
-    }
-    
     // don't allow two decimal points in the same number
     if (entry === "." && currentInput.includes(".")){
         return false;
@@ -76,7 +70,7 @@ function isValidEntry(entry) {
     }
 
     // don't accept input that would make the number too long
-    if (currentInput.length > 13) { 
+    if (currentInput && currentInput.length > 13) { 
         return false;
     }
 
@@ -88,29 +82,39 @@ function handleOperatorBtn(btn) {
     
     // operator has been pressed ("plus," "minus," etc)
     if (operations.includes(btn)) {
-        // number has been input but no operation is active
-        if (operation.numA === undefined &&
-            operation.operator === undefined &&
-            currentInput != undefined
-        ) {
+        // check if there's already an operation in progress
+        // operator and numA should always be defined simultaneously
+        if (operation.operator != undefined) {
+            // if a new number hasn't been input yet, just update the operator
+            if (currentInput === "") {
+                operation.operator = btn;
+            } else {
+                // otherwise, evaluate the existing operation
+                // and use the result as the new input
+                let result = evaluateOperation();
+                clearOperation();
+                currentInput = result;
+                updateDisplay();
+            }
+        }
+
+        // now that existing operations have been handled, process the new one
+        if (operation.operator === undefined) {
             operation.numA = Number(currentInput);
             operation.operator = btn;
-            currentInput = DEFAULT_INPUT;
             updateDisplay();
+            currentInput = "";
         }
     }
 
     if (btn === "equals") {
         if (operation.numA != undefined &&
             operation.operator != undefined &&
-            currentInput != undefined
+            currentInput
         ) {
-            let result = operate(operation.operator, operation.numA, Number(currentInput));
-            if (typeof result === "number") {
-                result = Math.round(result * 100) / 100;
-            } 
-            updateDisplay(result.toString());
-            clearOperation();
+            updateDisplay(evaluateOperation());
+            clearOperation;
+            currentInput = "";
         }
     }
 }
@@ -118,22 +122,35 @@ function handleOperatorBtn(btn) {
 function clearOperation() {
     operation.numA = undefined;
     operation.operator = undefined;
-    currentInput = DEFAULT_INPUT;
+    currentInput = "";
+}
+
+function evaluateOperation() {
+    let result;
+    try {
+        result = operate(operation.operator, operation.numA, Number(currentInput));
+        result = Math.round(result * 100) / 100;
+        return result;
+    } catch(e) {
+        clearOperation();
+        currentInput = "";
+        updateDisplay(e.message);
+    }
 }
 
 function updateDisplay(displayContent = currentInput) {
-    if (displayContent === undefined || currentInput === undefined) {
-        displayContent = "";
+    if (displayContent === "") {
+        displayContent = "0";
     }
     if (displayContent.length > 13) { // display can't handle long numbers
         displayContent = "ERR: TOO LONG";
-        currentInput = DEFAULT_INPUT;
+        currentInput = "";
     }
     document.querySelector("#display").textContent = displayContent;
 }
 
 
-let currentInput = DEFAULT_INPUT;
+let currentInput = "";
 let operation = {operator: undefined, numA: undefined};
 
 
