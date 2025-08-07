@@ -1,3 +1,5 @@
+const DEFAULT_INPUT = "0";
+
 function add(a, b) {
     return a + b;
 }
@@ -11,15 +13,18 @@ function multiply(a, b) {
 }
 
 function divide(a, b) {
+    if (b === 0) {
+        return "/0? NICE TRY!";
+    }
     return a / b;
 }
 
 function operate(operator, a, b) {
-    if (operator === "plus") {
+    if (operator === "add") {
         return add(a, b);
-    } else if (operator === "minus") {
+    } else if (operator === "subtract") {
         return subtract(a, b);
-    } else if (operator === "times") {
+    } else if (operator === "multiply") {
         return multiply(a, b);
     } else if (operator === "divide") {
         return divide(a, b);
@@ -28,93 +33,116 @@ function operate(operator, a, b) {
     }
 }
 
-function handleEntry(entry) {
-    if (Number(displayContent) === 0) {
-        displayContent = "";
-    }
-
-    if (entry === "clear") {
-        displayContent = "";
+function handleEntryBtn(btn) {
+    let entry;
+    if (btn === "clear") {
         clearOperation();
-    } else if (entry === "backspace") {
-        displayContent = displayContent.slice(0, -1);
-    } else if (entry === "decimal") {
-        entry = "."
+    } else if (btn === "backspace") {
+        currentInput = currentInput.slice(0, -1);
+    } else if (btn === "decimal") {
+        entry = ".";
+    } else {
+        entry = btn;
     }
 
     if (isValidEntry(entry)) {
-        displayContent += entry;
+        // don't allow leading zeroes
+        if (Number(currentInput) === 0 && !currentInput.includes(".")) {
+            if (entry === ".") {
+                currentInput = "0";
+            } else {
+                currentInput = "";
+            }
+        }
+        currentInput += entry;
     }
 
-    refreshDisplay();
+    updateDisplay();
 }
 
 function isValidEntry(entry) {
-    const validEntryRegex = /[\d\.]/
-    if (entry === "." && displayContent.includes(".")){
+    if (entry === undefined) {
         return false;
     }
+    
+    // don't allow two decimal points in the same number
+    if (entry === "." && currentInput.includes(".")){
+        return false;
+    }
+
+    const validEntryRegex = /[\d\.]/
     if (!validEntryRegex.test(entry)) {
         return false;
     }
-    if (displayContent.length > 13) { // display can't handle long numbers
+
+    // don't accept input that would make the number too long
+    if (currentInput.length > 13) { 
         return false;
     }
+
     return true;
 }
 
-function handleOperation(operatorInput) {
-    // [numA = N, numB = N] -> type -> OPERATOR -> [numA = Y, numB = N] -> type -> EQUAL -> [numA = Y, numB = Y] -> DISPLAY
+function handleOperatorBtn(btn) {
+    const operations = ["add", "subtract", "multiply", "divide"];
     
-    // [numA = N, numB = N] expected sequence: type a number
-    // [numA = Y, numB = N]then hit an operator to store that number as numA,
-    // [numA = Y, numB = Y]then type another number, then hit equal to store as numB
-    // [numA = Y, numB = Y] DISPLAY RESULT
-    // operator with nothing typed = nothing happens
-    // equal with no numA stored == nothing happens? 
-    // or just return the value entered as the result.
-    // after equal, a new thing typed will clear, and an operator will chain
-    if (operatorInput === "equals") {
-        numB = Number(displayContent);
-        displayContent = operate(operator, numA, numB).toString();
-        refreshDisplay();
-    } else {
-        numA = Number(displayContent);
-        displayContent = "";
-        operator = operatorInput;
+    // operator has been pressed ("plus," "minus," etc)
+    if (operations.includes(btn)) {
+        // number has been input but no operation is active
+        if (operation.numA === undefined &&
+            operation.operator === undefined &&
+            currentInput != undefined
+        ) {
+            operation.numA = Number(currentInput);
+            operation.operator = btn;
+            currentInput = DEFAULT_INPUT;
+            updateDisplay();
+        }
+    }
+
+    if (btn === "equals") {
+        if (operation.numA != undefined &&
+            operation.operator != undefined &&
+            currentInput != undefined
+        ) {
+            let result = operate(operation.operator, operation.numA, Number(currentInput));
+            if (typeof result === "number") {
+                result = Math.round(result * 100) / 100;
+            } 
+            updateDisplay(result.toString());
+            clearOperation();
+        }
     }
 }
 
 function clearOperation() {
-    numA = undefined;
-    numB = undefined;
-    operator = undefined;
+    operation.numA = undefined;
+    operation.operator = undefined;
+    currentInput = DEFAULT_INPUT;
 }
 
-function refreshDisplay() {
-    if (!displayContent || displayContent === "ERROR") {
-        displayContent = "00.00";
+function updateDisplay(displayContent = currentInput) {
+    if (displayContent === undefined || currentInput === undefined) {
+        displayContent = "";
     }
     if (displayContent.length > 13) { // display can't handle long numbers
-        document.querySelector("#display").textContent = "ERROR";
-        displayContent = "";
-    } else {
-        document.querySelector("#display").textContent = displayContent;
+        displayContent = "ERR: TOO LONG";
+        currentInput = DEFAULT_INPUT;
     }
+    document.querySelector("#display").textContent = displayContent;
 }
 
 
-let displayContent;
-let operator;
-let numA;
-let numB;
+let currentInput = DEFAULT_INPUT;
+let operation = {operator: undefined, numA: undefined};
+
 
 document.querySelectorAll("button.entry").forEach(btn => {
-    btn.addEventListener("click", (e) => {handleEntry(e.target.id)});
+    btn.addEventListener("click", (e) => {handleEntryBtn(e.target.id)});
 });
 
 document.querySelectorAll("button.operator").forEach(btn => {
-    btn.addEventListener("click", (e) => {handleOperation(e.target.id)});
+    btn.addEventListener("click", (e) => {handleOperatorBtn(e.target.id)});
 });
 
-refreshDisplay();
+updateDisplay();
