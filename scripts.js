@@ -1,43 +1,13 @@
-/*
-Operation
-    num a
-    num b
-    operator
-
-    evaluate
-        round
-
-    setOperator?
-    inputNumber?
-
-Display
-    DOES this just model the visual, or the inputted number as well?
-    like, is this about handing what to display, or what to remember?
-    probably both. mostly about what to display tho
-    current inputted value
-    clear
-    display (with option to display error)
-    eNotation?
-    addDigit?
-    backspace?
-
-parseInput
-    clear
-    digit
-    backspace
-    operator
-    equals
-*/
-
 function Calculator() {
-    /// operation variables
+    // status : awaitNumA inputNumA awaitNumB inputNumB result
+    // operation variables
     this.numA = null;
     this.numB = null;
     this.operator = null;
-    this.result = null;
+    this.prevResult = null;
 
     // input variables
-    this.currentInput = "0";
+    this.currentInput = "";
     this.maxDisplayLength = 13;
 
 
@@ -61,48 +31,33 @@ function Calculator() {
         }
     }
 
-    this.inputNumber = function () {
-        if (this.numA === null) {
-            this.numA = Number(this.currentInput);
-        } else {
-            this.numB = Number(this.currentInput);
+    this.setOperator = function (operator) {            
+        if (this.operationReady()) {
+            console.log("Too late, can't set an operator at this stage of the operation.");
+            return;
         }
-    }
 
-    this.setOperator = function (operator) {
-        if (this.numA === null) {
-            console.log("Error! Can't set operator without numA.");
-        } else if (this.numB != null) {
-            console.log("Error! Can't set operator when numB exists.");
-        } else {
-            this.operator = operator;
+        if (this.numA === null && this.currentInput === "") {
+            console.log("Sorry, can't operate on nothing!");
+            return;
         }
+
+        this.numA = this.numA ? this.numA : Number(this.currentInput);
+        this.currentInput = "";
+        this.operator = operator;
     }
 
     this.evaluate = function () {
-        if (this.numA === null || this.numB === null || this.operator === null) {
-            console.log("Error! Cannot evaluate incomplete function.");
+        // make sure operation is complete
+        if (this.operationReady()) {
+            this.numB = Number(this.currentInput);
+            this.currentInput = "";
+            let result = this.round(this.operate());
+            this.clearOperation();
+            return result;
         } else {
-            this.result = round(this.operate());
-            return this.result;
+            console.log("Can't evaluate incomplete operation!");
         }
-    }
-
-    this.clear = function () {
-        this.numA = null;
-        this.numB = null;
-        this.operator = null;
-        this.result = null;
-        this.currentInput = "0";
-    }
-
-    this.isValidDigit = function (digit) {
-        const validDigitRegex = /^\d$/;
-        return validDigitRegex.test(digit);
-    }
-
-    this.trimLeadingZeroes = function () {
-        this.currentInput = this.currentInput.replace(/^0+/, "");
     }
 
     this.operate = function () {
@@ -126,13 +81,43 @@ function Calculator() {
                 console.log(`Invalid operator "${operator}".`);
         }
     }
+
+    this.operationReady = function () {
+        return (this.operator != null && !(calculator.currentInput === ""));
+    }
+
+    this.round = function (num, digits = 2) {
+        const factor = 10 ** digits;
+        return (Math.round(num * factor) / factor);
+    }
+
+    this.isValidDigit = function (digit) {
+        const validDigitRegex = /^\d$/;
+        return validDigitRegex.test(digit);
+    }
+
+    this.trimLeadingZeroes = function () {
+        this.currentInput = this.currentInput.replace(/^0+/, "");
+    }
+
+    this.clearOperation = function() {
+        this.numA = null;
+        this.numB = null;
+        this.operator = null;
+        this.currentInput = "";
+    }
+
+    this.clearAll = function () {
+        this.clearOperation();
+        this.prevResult = null;
+    }
 }
 
 function Display() {
     this.display = document.querySelector("#display");
     this.maxDisplayLength = 13;
 
-    this.updateDisplay = function (content) {
+    this.update = function (content) {
         content = this.formatContent(content)
         this.display.textContent = content;
     }
@@ -150,6 +135,8 @@ function Display() {
             console.log(`Message exceeded max character length: ${content}`);
             return "TOO LONG"
         }
+
+        return content;
     }
 
     this.formatNumber = function (num) {
@@ -178,26 +165,26 @@ function Display() {
         if (baseNum.length + eSuffix.length > this.maxDisplayLength) {
             // account for suffix as well as first digit and decimal
             maxDigits = this.maxDisplayLength - (eSuffix.length + 2);
-            baseNum = round(baseNum, maxDigits);
+            baseNum = this.round(baseNum, maxDigits);
         }
 
         return `${baseNum}${eSuffix}`;
     }
 
-    this.clear = function () {
-        this.updateDisplay("");
-    }
-}
-
-function round(num, digits) {
+    this.round = function (num, digits = 2) {
         const factor = 10 ** digits;
         return (Math.round(num * factor) / factor);
+    }
+
+    this.clear = function () {
+        this.update("");
+    }
 }
 
 function parseInput(e) {
     const btn = e.target;
 
-    switch (btn.class) {
+    switch (btn.className) {
         case "entry":
             processEntry(btn.id);
             break;
@@ -208,8 +195,8 @@ function parseInput(e) {
             processEquals();
             break;
         case "clear":
-            calc.clear();
-            displayHandler.clear();
+            calculator.clearAll();
+            display.clear();
             break;
         default:
             console.log(`Unknown button: ${btn}`);
@@ -219,174 +206,41 @@ function parseInput(e) {
 function processEntry(entry) {
     switch (entry) {
         case "decimal":
-            calc.appendDecimal();
+            calculator.appendDecimal();
             break;
         case "backspace":
-            calc.backspace();
+            calculator.backspace();
             break;
         default:
-            calc.appendDigit(Number(entry));
+            calculator.appendDigit(Number(entry));
             break;
     }
-    displayHandler.updateDisplay(calc.currentInput);
+    display.update(calculator.currentInput);
 }
 
 function processOperator(operator) {
-    // if an operation just finished, use it as the new baseline
-    if (calc.result != null) {
-        calc.currentInput = calc.result;
-    }
-
-    // if there is nothing to operate on, just update the operator
-    if (calc.currentInput === "") {
-        calc.setOperator(operator);
-    }
-
-    // if there's already two numbers 
-    if (calc.numB != null) {
-
-    }
-    /*
-    if there is nothing in the current input....do nothing UNLESS there's something in the result field?
-    if there 
-    Big question is whether or not we're in the middle of an operation*/
-
+    display.update("0");
     
+    // if there's a complete operation ready, process it first
+    if (calculator.operationReady()) {
+        processEquals();
+    }
+
+    calculator.setOperator(operator);
 }
 
-const displayHandler = new Display();
-const calc = new Calculator();
-
-
-function handleEntryBtn(btn) {
-    let entry;
-    if (btn === "clear") {
-        clearOperation();
-    } else if (btn === "backspace") {
-        currentInput = currentInput.slice(0, -1);
-    } else if (btn === "decimal") {
-        entry = ".";
-    } else {
-        entry = btn;
-    }
-
-    if (isValidEntry(entry)) {
-        // don't allow leading zeroes
-        if (Number(currentInput) === 0 && !currentInput.includes(".")) {
-            if (entry === ".") {
-                currentInput = "0";
-            } else {
-                currentInput = "";
-            }
-        }
-        currentInput += entry;
-    }
-
-    updateDisplay();
-}
-
-function isValidEntry(entry) {
-    // don't allow two decimal points in the same number
-    if (entry === "." && currentInput.includes(".")){
-        return false;
-    }
-
-    const validEntryRegex = /[\d\.]/
-    if (!validEntryRegex.test(entry)) {
-        return false;
-    }
-
-    // don't accept input that would make the number too long
-    if (currentInput && currentInput.length > 13) { 
-        return false;
-    }
-
-    return true;
-}
-
-function handleOperatorBtn(btn) {
-    const operations = ["add", "subtract", "multiply", "divide"];
-    
-    // operator has been pressed ("plus," "minus," etc)
-    if (operations.includes(btn)) {
-        // check if there's already an operation in progress
-        // operator and numA should always be defined simultaneously
-        if (operation.operator != undefined) {
-            // if a new number hasn't been input yet, just update the operator
-            if (currentInput === "") {
-                operation.operator = btn;
-            } else {
-                // otherwise, evaluate the existing operation
-                // and use the result as the new input
-                let result = evaluateOperation();
-                clearOperation();
-                currentInput = result;
-                updateDisplay();
-            }
-        }
-
-        // now that existing operations have been handled, process the new one
-        if (operation.operator === undefined) {
-            operation.numA = Number(currentInput);
-            operation.operator = btn;
-            updateDisplay();
-            currentInput = "";
-        }
-    }
-
-    if (btn === "equals") {
-        if (operation.numA != undefined &&
-            operation.operator != undefined &&
-            currentInput
-        ) {
-            updateDisplay(evaluateOperation());
-            clearOperation;
-            currentInput = "";
-        }
+function processEquals() {
+    if (calculator.operationReady()) {
+        let result = calculator.evaluate();
+        display.update(result);
+        calculator.numA = result;
     }
 }
 
-function clearOperation() {
-    operation.numA = undefined;
-    operation.operator = undefined;
-    currentInput = "";
-}
-
-function evaluateOperation() {
-    let result;
-    try {
-        result = operate(operation.operator, operation.numA, Number(currentInput));
-        result = Math.round(result * 100) / 100;
-        return result;
-    } catch(e) {
-        clearOperation();
-        currentInput = "";
-        updateDisplay(e.message);
-    }
-}
-
-function updateDisplay(displayContent = currentInput) {
-    if (displayContent === "") {
-        displayContent = "0";
-    }
-    if (displayContent.length > 13) { // display can't handle long numbers
-        displayContent = "ERR: TOO LONG";
-        currentInput = "";
-    }
-    document.querySelector("#display").textContent = displayContent;
-}
+const display = new Display();
+const calculator = new Calculator();
 
 
-let currentInput = "";
-let operation = {operator: undefined, numA: undefined};
-
-
-document.querySelectorAll("button.entry").forEach(btn => {
-    btn.addEventListener("click", (e) => {handleEntryBtn(e.target.id)});
+document.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", parseInput);
 });
-
-document.querySelectorAll("button.operator").forEach(btn => {
-    btn.addEventListener("click", (e) => {handleOperatorBtn(e.target.id)});
-});
-
-updateDisplay();
