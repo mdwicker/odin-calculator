@@ -30,8 +30,13 @@ parseInput
 */
 
 function Operation() {
+    this.numA = null;
+    this.numB = null;
+    this.operator = null;
+    this.result = null;
+    
     this.inputNumber = function (num) {
-        if (!this.numA) {
+        if (this.numA === null) {
             this.numA = num;
         } else {
             this.numB = num;
@@ -39,9 +44,9 @@ function Operation() {
     }
 
     this.setOperator = function (operator) {
-        if (!this.numA) {
+        if (this.numA === null) {
             console.log("Error! Can't set operator without numA.");
-        } else if (this.numB) {
+        } else if (this.numB != null) {
             console.log("Error! Can't set operator when numB exists.");
         } else {
             this.operator = operator;
@@ -49,52 +54,153 @@ function Operation() {
     }
 
     this.evaluate = function () {
-        if (!this.numA || !this.numB || !this.operator) {
+        if (this.numA === null || this.numB === null || this.operator === null) {
             console.log("Error! Cannot evaluate incomplete function.");
         } else {
-            return this.round()
+            this.result = this.round(this.operate());
+            return this.result;
         }
     }
 
-    this.add = function (a, b) {
-        return a + b;
-    }
+    this.operate = function () {
+        const operator = this.operator;
+        const a = this.numA;
+        const b = this.numB;
 
-    this.subtract = function (a, b) {
-        return a - b;
-    }
-
-    this.multiply = function (a, b) {
-        return a * b;
-    }
-
-    this.divide = function divide(a, b) {
-        if (b === 0) {
-            throw new Error("DIV BY 0");
+        switch (operator) {
+            case "add":
+                return a + b;
+            case "subtract":
+                return a - b;
+            case "multiply":
+                return a * b;
+            case "divide":
+                if (b === 0) {
+                    throw new Error("DIV BY 0");
+                }
+                return a / b;
+            default:
+                console.log(`Invalid operator "${operator}".`);
         }
-        return a / b;
     }
 
-    function operate(operator, a, b) {
-        if (operator === "add") {
-            return a + b;
-        } else if (operator === "subtract") {
-            return a - b;
-        } else if (operator === "multiply") {
-            return a * b;
-        } else if (operator === "divide") {
-            if (b === 0) {
-                throw new Error ("DIV BY 0");
-            }
-            return a / b;
-        } else {
-            console.log(`Invalid operator "${operator}".`);
-        }
+    this.round = function (num, digits = 2) {
+        const factor = 10 ** digits;
+        return (Math.round(num * factor) / factor);
+    }
+
+    this.clear = function () {
+        this.numA = null;
+        this.numB = null;
+        this.operator = null;
+        this.result = null;
     }
 }
 
+function Input() {
+    this.currentInput = "";
+    this.maxLength = 13;
+
+    this.appendDigit = function (digit) {
+        if (this.isValidDigit(digit) && this.currentInput.length < this.maxLength) {
+            this.currentInput += digit;
+            this.trimLeadingZeroes();
+        }
+    }
 
 
+    this.handleDecimal = function () {
+        // don't allow a second decimal
+        if (!this.currentInput.includes(".")) {
+            this.currentInput = this.currentInput ? this.currentInput + "." : "0.";
+        }
+    }
+
+    this.backspace = function () {
+        if (this.currentInput.length > 0) {
+            this.currentInput = this.currentInput.slice(0, -1);
+        }
+    }
+
+    this.isValidDigit = function (digit) {
+        const validDigitRegex = /^\d$/;
+        return validDigitRegex.test(digit);
+    }
+
+    this.trimLeadingZeroes = function () {
+        this.currentInput = this.currentInput.replace(/^0+/, "");
+    }
+
+    this.clear = function () {
+        this.currentInput = "";
+    }
+}
+
+function Display() {
+    this.display = document.querySelector("#display");
+    this.maxLength = 13;
+
+    this.updateDisplay = function (content) {
+        content = this.formatContent(content)
+        this.display.textContent = content;
+    }
+
+    this.formatContent = function (content) {
+        if (!content) {
+            return "0";
+        }
+
+        if (typeof content === "number") {
+            return this.formatNumber(content);
+        }
+        
+        if (content.length > this.maxLength) {
+            console.log(`Message exceeded max character length: ${content}`);
+            return "TOO LONG"
+        }
+    }
+
+    this.formatNumber = function (num) {
+        if (num > 10 ** 100) {
+            return "ERR: BIG NUM";
+        }
+        let display_num = num.toString();
+        if (display_num.length > this.maxLength) {
+            return this.eNotation(num);
+        }
+        return display_num;
+    }
+
+    this.eNotation = function (num) {
+        // No need to handle decimal points like 0.00005
+        // because Operation already rounds down to two digits
+        
+        let powersOfTen = 0;
+        while (num >= 10) {
+            num /= 10;
+            powersOfTen++;
+        }
+        const eSuffix = `E${powersOfTen}`;
+
+        let baseNum = num.toString();
+        if (baseNum.length + eSuffix.length > this.maxLength) {
+            // account for suffix as well as first digit and decimal
+            maxDigits = this.maxLength - (eSuffix.length + 2);
+            baseNum = this.round(baseNum, maxDigits);
+        }
+
+        return `${baseNum}${eSuffix}`;
+    }
+
+    this.round = function (num, digits) {
+        const factor = 10 ** digits;
+        return (Math.round(num * factor) / factor);
+    }
+
+    this.clearDisplay = function () {
+        this.updateDisplay("");
+    }
+}
 
 
 function handleEntryBtn(btn) {
