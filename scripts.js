@@ -1,15 +1,31 @@
 function Calculator() {
-    // status : awaitNumA inputNumA awaitNumB inputNumB result
     // operation variables
     this.numA = null;
     this.numB = null;
     this.operator = null;
     this.prevResult = null;
+    
+    // possible states:
+    // "awaitingInput", "enteringNumA", "operatorSet", "enteringNumB", "resultDisplayed"
+    this.state = "awaitingInput"; 
 
     // input variables
     this.currentInput = "";
     this.maxDisplayLength = 13;
 
+    this.editInput = function (entry){
+        switch (entry) {
+            case "decimal":
+                this.appendDecimal();
+                break;
+            case "backspace":
+                this.backspace();
+                break;
+            default:
+                this.appendDigit(entry);
+                break;
+        } 
+    }
 
     this.appendDigit = function (digit) {
         if (this.isValidDigit(digit) && this.currentInput.length < this.maxDisplayLength) {
@@ -31,27 +47,20 @@ function Calculator() {
         }
     }
 
-    this.setOperator = function (operator) {            
-        if (this.operationReady()) {
-            console.log("Too late, can't set an operator at this stage of the operation.");
-            return;
-        }
-
-        if (this.numA === null && this.currentInput === "") {
-            console.log("Sorry, can't operate on nothing!");
-            return;
-        }
-
-        this.numA = this.numA ? this.numA : Number(this.currentInput);
+    this.storeNumA = function () {
+        this.numA = Number(this.currentInput);
         this.currentInput = "";
+    }
+
+    this.setOperator = function (operator) {
         this.operator = operator;
+        this.state = "operatorSet";
     }
 
     this.evaluate = function () {
         // make sure operation is complete
         if (this.operationReady()) {
             this.numB = Number(this.currentInput);
-            this.currentInput = "";
             let result = this.round(this.operate());
             this.clearOperation();
             return result;
@@ -110,6 +119,7 @@ function Calculator() {
     this.clearAll = function () {
         this.clearOperation();
         this.prevResult = null;
+        this.state = "awaitingInput";
     }
 }
 
@@ -204,37 +214,59 @@ function parseInput(e) {
 }
 
 function processEntry(entry) {
-    switch (entry) {
-        case "decimal":
-            calculator.appendDecimal();
+    switch (calculator.state) {
+        case "awaitingInput":
+            calculator.state = "enteringNumA";
             break;
-        case "backspace":
-            calculator.backspace();
+        case "operatorSet":
+            calculator.state = "enteringNumB";
             break;
-        default:
-            calculator.appendDigit(Number(entry));
+        case "resultDisplayed":
+            calculator.clearAll();
             break;
     }
+    calculator.editInput(entry);
     display.update(calculator.currentInput);
 }
 
-function processOperator(operator) {
-    display.update("0");
-    
-    // if there's a complete operation ready, process it first
-    if (calculator.operationReady()) {
-        processEquals();
+function processOperator(operator) {  
+    switch (calculator.state) {
+        case "awaitingInput":
+            // Can't operate on nothing
+            return;
+        case "enteringNumA":
+            calculator.storeNumA();
+            calculator.setOperator(operator);
+            break;
+        case "operatorSet":
+            calculator.setOperator(operator);
+            break;
+        case "enteringNumB":
+            handleEvaluation();
+            calculator.setOperator(operator);
+            break;
+        case "resultDisplayed":
+            calculator.setOperator(operator);
+            break;
     }
-
-    calculator.setOperator(operator);
 }
 
 function processEquals() {
-    if (calculator.operationReady()) {
-        let result = calculator.evaluate();
-        display.update(result);
-        calculator.numA = result;
+    if (calculator.state === "enteringNumB") {
+        handleEvaluation();
     }
+}
+
+function handleEvaluation() {
+    if (calculator.state != "enteringNumB") {
+        console.log("Handling evaluation too soon!")
+        return;
+    }
+
+    let result = calculator.evaluate();
+    display.update(result);
+    calculator.numA = result;
+    calculator.state = "resultDisplayed";
 }
 
 const display = new Display();
