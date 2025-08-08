@@ -1,35 +1,101 @@
-function add(a, b) {
-    return a + b;
-}
+/*
+Operation
+    num a
+    num b
+    operator
 
-function subtract(a, b) {
-    return a - b;
-}
+    evaluate
+        round
 
-function multiply(a, b) {
-    return a * b;
-}
+    setOperator?
+    inputNumber?
 
-function divide(a, b) {
-    if (b === 0) {
-        throw new Error("DIV BY 0");
+Display
+    DOES this just model the visual, or the inputted number as well?
+    like, is this about handing what to display, or what to remember?
+    probably both. mostly about what to display tho
+    current inputted value
+    clear
+    display (with option to display error)
+    eNotation?
+    addDigit?
+    backspace?
+
+parseInput
+    clear
+    digit
+    backspace
+    operator
+    equals
+*/
+
+function Operation() {
+    this.inputNumber = function (num) {
+        if (!this.numA) {
+            this.numA = num;
+        } else {
+            this.numB = num;
+        }
     }
-    return a / b;
-}
 
-function operate(operator, a, b) {
-    if (operator === "add") {
-        return add(a, b);
-    } else if (operator === "subtract") {
-        return subtract(a, b);
-    } else if (operator === "multiply") {
-        return multiply(a, b);
-    } else if (operator === "divide") {
-        return divide(a, b);
-    } else {
-        console.log(`Error! "${operator}" is not a valid operator.`);
+    this.setOperator = function (operator) {
+        if (!this.numA) {
+            console.log("Error! Can't set operator without numA.");
+        } else if (this.numB) {
+            console.log("Error! Can't set operator when numB exists.");
+        } else {
+            this.operator = operator;
+        }
+    }
+
+    this.evaluate = function () {
+        if (!this.numA || !this.numB || !this.operator) {
+            console.log("Error! Cannot evaluate incomplete function.");
+        } else {
+            return this.round()
+        }
+    }
+
+    this.add = function (a, b) {
+        return a + b;
+    }
+
+    this.subtract = function (a, b) {
+        return a - b;
+    }
+
+    this.multiply = function (a, b) {
+        return a * b;
+    }
+
+    this.divide = function divide(a, b) {
+        if (b === 0) {
+            throw new Error("DIV BY 0");
+        }
+        return a / b;
+    }
+
+    function operate(operator, a, b) {
+        if (operator === "add") {
+            return a + b;
+        } else if (operator === "subtract") {
+            return a - b;
+        } else if (operator === "multiply") {
+            return a * b;
+        } else if (operator === "divide") {
+            if (b === 0) {
+                throw new Error ("DIV BY 0");
+            }
+            return a / b;
+        } else {
+            console.log(`Invalid operator "${operator}".`);
+        }
     }
 }
+
+
+
+
 
 function handleEntryBtn(btn) {
     let entry;
