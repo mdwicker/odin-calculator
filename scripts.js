@@ -29,17 +29,43 @@ parseInput
     equals
 */
 
-function Operation() {
+function Calculator() {
+    /// operation variables
     this.numA = null;
     this.numB = null;
     this.operator = null;
     this.result = null;
-    
-    this.inputNumber = function (num) {
+
+    // input variables
+    this.currentInput = "0";
+    this.maxDisplayLength = 13;
+
+
+    this.appendDigit = function (digit) {
+        if (this.isValidDigit(digit) && this.currentInput.length < this.maxDisplayLength) {
+            this.currentInput += digit;
+            this.trimLeadingZeroes();
+        }
+    }
+
+    this.appendDecimal = function () {
+        // don't allow a second decimal
+        if (!this.currentInput.includes(".")) {
+            this.currentInput = this.currentInput ? this.currentInput + "." : "0.";
+        }
+    }
+
+    this.backspace = function () {
+        if (this.currentInput.length > 0) {
+            this.currentInput = this.currentInput.slice(0, -1);
+        }
+    }
+
+    this.inputNumber = function () {
         if (this.numA === null) {
-            this.numA = num;
+            this.numA = Number(this.currentInput);
         } else {
-            this.numB = num;
+            this.numB = Number(this.currentInput);
         }
     }
 
@@ -57,9 +83,26 @@ function Operation() {
         if (this.numA === null || this.numB === null || this.operator === null) {
             console.log("Error! Cannot evaluate incomplete function.");
         } else {
-            this.result = this.round(this.operate());
+            this.result = round(this.operate());
             return this.result;
         }
+    }
+
+    this.clear = function () {
+        this.numA = null;
+        this.numB = null;
+        this.operator = null;
+        this.result = null;
+        this.currentInput = "0";
+    }
+
+    this.isValidDigit = function (digit) {
+        const validDigitRegex = /^\d$/;
+        return validDigitRegex.test(digit);
+    }
+
+    this.trimLeadingZeroes = function () {
+        this.currentInput = this.currentInput.replace(/^0+/, "");
     }
 
     this.operate = function () {
@@ -83,62 +126,11 @@ function Operation() {
                 console.log(`Invalid operator "${operator}".`);
         }
     }
-
-    this.round = function (num, digits = 2) {
-        const factor = 10 ** digits;
-        return (Math.round(num * factor) / factor);
-    }
-
-    this.clear = function () {
-        this.numA = null;
-        this.numB = null;
-        this.operator = null;
-        this.result = null;
-    }
-}
-
-function Input() {
-    this.currentInput = "";
-    this.maxLength = 13;
-
-    this.appendDigit = function (digit) {
-        if (this.isValidDigit(digit) && this.currentInput.length < this.maxLength) {
-            this.currentInput += digit;
-            this.trimLeadingZeroes();
-        }
-    }
-
-
-    this.handleDecimal = function () {
-        // don't allow a second decimal
-        if (!this.currentInput.includes(".")) {
-            this.currentInput = this.currentInput ? this.currentInput + "." : "0.";
-        }
-    }
-
-    this.backspace = function () {
-        if (this.currentInput.length > 0) {
-            this.currentInput = this.currentInput.slice(0, -1);
-        }
-    }
-
-    this.isValidDigit = function (digit) {
-        const validDigitRegex = /^\d$/;
-        return validDigitRegex.test(digit);
-    }
-
-    this.trimLeadingZeroes = function () {
-        this.currentInput = this.currentInput.replace(/^0+/, "");
-    }
-
-    this.clear = function () {
-        this.currentInput = "";
-    }
 }
 
 function Display() {
     this.display = document.querySelector("#display");
-    this.maxLength = 13;
+    this.maxDisplayLength = 13;
 
     this.updateDisplay = function (content) {
         content = this.formatContent(content)
@@ -154,7 +146,7 @@ function Display() {
             return this.formatNumber(content);
         }
         
-        if (content.length > this.maxLength) {
+        if (content.length > this.maxDisplayLength) {
             console.log(`Message exceeded max character length: ${content}`);
             return "TOO LONG"
         }
@@ -165,7 +157,7 @@ function Display() {
             return "ERR: BIG NUM";
         }
         let display_num = num.toString();
-        if (display_num.length > this.maxLength) {
+        if (display_num.length > this.maxDisplayLength) {
             return this.eNotation(num);
         }
         return display_num;
@@ -183,24 +175,87 @@ function Display() {
         const eSuffix = `E${powersOfTen}`;
 
         let baseNum = num.toString();
-        if (baseNum.length + eSuffix.length > this.maxLength) {
+        if (baseNum.length + eSuffix.length > this.maxDisplayLength) {
             // account for suffix as well as first digit and decimal
-            maxDigits = this.maxLength - (eSuffix.length + 2);
-            baseNum = this.round(baseNum, maxDigits);
+            maxDigits = this.maxDisplayLength - (eSuffix.length + 2);
+            baseNum = round(baseNum, maxDigits);
         }
 
         return `${baseNum}${eSuffix}`;
     }
 
-    this.round = function (num, digits) {
-        const factor = 10 ** digits;
-        return (Math.round(num * factor) / factor);
-    }
-
-    this.clearDisplay = function () {
+    this.clear = function () {
         this.updateDisplay("");
     }
 }
+
+function round(num, digits) {
+        const factor = 10 ** digits;
+        return (Math.round(num * factor) / factor);
+}
+
+function parseInput(e) {
+    const btn = e.target;
+
+    switch (btn.class) {
+        case "entry":
+            processEntry(btn.id);
+            break;
+        case "operator":
+            processOperator(btn.id);
+            break;
+        case "equals":
+            processEquals();
+            break;
+        case "clear":
+            calc.clear();
+            displayHandler.clear();
+            break;
+        default:
+            console.log(`Unknown button: ${btn}`);
+    }
+}
+
+function processEntry(entry) {
+    switch (entry) {
+        case "decimal":
+            calc.appendDecimal();
+            break;
+        case "backspace":
+            calc.backspace();
+            break;
+        default:
+            calc.appendDigit(Number(entry));
+            break;
+    }
+    displayHandler.updateDisplay(calc.currentInput);
+}
+
+function processOperator(operator) {
+    // if an operation just finished, use it as the new baseline
+    if (calc.result != null) {
+        calc.currentInput = calc.result;
+    }
+
+    // if there is nothing to operate on, just update the operator
+    if (calc.currentInput === "") {
+        calc.setOperator(operator);
+    }
+
+    // if there's already two numbers 
+    if (calc.numB != null) {
+
+    }
+    /*
+    if there is nothing in the current input....do nothing UNLESS there's something in the result field?
+    if there 
+    Big question is whether or not we're in the middle of an operation*/
+
+    
+}
+
+const displayHandler = new Display();
+const calc = new Calculator();
 
 
 function handleEntryBtn(btn) {
