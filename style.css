@@ -18,6 +18,8 @@ body {
     min-height: 300px;;
     aspect-ratio: 4/5;
     border: solid black 3px;
+    border-radius: 15px;
+    background-color: #2a2e37;
     padding: 30px;
     gap: 20px;
     box-sizing: border-box;
@@ -26,6 +28,9 @@ body {
 #display {
     flex: 1 1 0;
     border: solid black 3px;
+    border-radius: 5px;
+    background-color: #f0f2f5;
+    color: #333333;
     padding: 20px;
     display: flex;
     justify-content: right;
@@ -36,10 +41,26 @@ body {
 
 button {
     box-sizing: border-box;
+    background-color: #c5c8ce;
+    color: #333333;
     border-width: 3px;
+    border-radius: 5px;
     font-size: max(4vh, 16px);
     font-weight: bold;
     font-family: "Azaret Mono", monospace;
+}
+
+button:active {
+    background-color: #b1b5bd;
+}
+
+button.active {
+    background-color: #b1b5bd;
+}
+
+button.selected {
+    background-color: #b1b5bd;
+    color: #FFD166;
 }
 
 #buttons {

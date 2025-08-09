@@ -191,9 +191,7 @@ function Display() {
     }
 }
 
-function parseInput(e) {
-    const btn = e.target;
-
+function parseInput(btn) {
     switch (btn.className) {
         case "entry":
             processEntry(btn.id);
@@ -207,6 +205,7 @@ function parseInput(e) {
         case "clear":
             calculator.clearAll();
             display.clear();
+            setSelectedOperator("none");
             break;
         default:
             console.log(`Unknown button: ${btn}`);
@@ -214,6 +213,10 @@ function parseInput(e) {
 }
 
 function processEntry(entry) {
+    // trim the leading "d" from the digit ids
+    if (entry.charAt(0) === "d" && entry.length === 2) {
+        entry = entry.slice(1);
+    }
     switch (calculator.state) {
         case "awaitingInput":
             calculator.state = "enteringNumA";
@@ -249,6 +252,10 @@ function processOperator(operator) {
             calculator.setOperator(operator);
             break;
     }
+    if (calculator.state != "awaitingInput") {
+        calculator.setOperator(operator);
+        setSelectedOperator(operator);
+    }
 }
 
 function processEquals() {
@@ -267,6 +274,18 @@ function handleEvaluation() {
     display.update(result);
     calculator.numA = result;
     calculator.state = "resultDisplayed";
+    setSelectedOperator("none");
+}
+
+function setSelectedOperator (operator) {
+    const operatorBtns = document.querySelectorAll("button.operator");
+    operatorBtns.forEach(btn => {
+        btn.classList.remove("selected");
+    })
+
+    if (operator != "none") {
+        document.querySelector(`#${operator}`).classList.add("selected");
+    }
 }
 
 const display = new Display();
@@ -274,5 +293,74 @@ const calculator = new Calculator();
 
 
 document.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", parseInput);
+    btn.addEventListener("click", (e) => {
+        parseInput(e.target);
+    });
 });
+
+// keyboard support
+document.addEventListener("keydown", (e) => {
+    // only fire once per keypress
+    if (e.repeat) return;
+
+    const btn = getButton(e.key);
+    if (btn) {
+        btn.classList.add("active");
+    }
+});
+
+document.addEventListener("keyup", (e) => {
+    const btn = getButton(e.key);
+    if (btn) {
+        btn.classList.remove("active");
+        parseInput(btn);
+    }
+});
+
+function getButton(key) {
+    const digits = "0123456789";
+    let id = null;
+    if (digits.includes(key)) {
+        id = `d${key}`;
+    }
+    
+    switch (key) {
+        case "Escape":
+            id = "clear";
+            break;
+        case "/":
+            id = "divide";
+            break;
+        case "x":
+            id = "multiply";
+            break;
+        case "*":
+            id = "multiply";
+            break;
+        case "-":
+            id = "subtract";
+            break;
+        case "+":
+            id = "add";
+            break;
+        case ".":
+            id = "decimal";
+            break;
+        case "Backspace":
+            id = "backspace";
+            break;
+        case "Enter":
+            id = "equals";
+            break;
+        case "=":
+            id = "equals";
+            break;
+    }
+
+    if (id) {
+        return document.querySelector(`#${id}`);
+    }
+
+    return null;
+}
+
