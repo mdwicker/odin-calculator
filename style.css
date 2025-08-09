@@ -50,11 +50,7 @@ button {
     font-family: "Azaret Mono", monospace;
 }
 
-button:active {
-    background-color: #b1b5bd;
-}
-
-button.active {
+button:active, button.active {
     background-color: #b1b5bd;
 }
 
